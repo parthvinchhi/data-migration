@@ -8,36 +8,69 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/parthvinchhi/data-migration/pkg/db"
 	"github.com/parthvinchhi/data-migration/pkg/models"
+	"github.com/parthvinchhi/data-migration/pkg/services"
 	"gorm.io/gorm"
 )
+
+type SnT models.SourceAndTarget
 
 func LoadHtml(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", nil)
 }
 
-func MigrateHandler(c *gin.Context) {
-	sourceDBType := c.PostForm("source_db_type")
-	sourceHost := c.PostForm("source_host")
-	sourcePort := c.PostForm("source_port")
-	sourceUser := c.PostForm("source_user")
-	sourcePassword := c.PostForm("source_password")
-	sourceDBName := c.PostForm("source_dbname")
+type Handler struct {
+	StorageService services.StorageService
+}
 
-	targetDBType := c.PostForm("target_db_type")
-	targetHost := c.PostForm("target_host")
-	targetPort := c.PostForm("target_port")
-	targetUser := c.PostForm("target_user")
-	targetPassword := c.PostForm("target_password")
-	targetDBName := c.PostForm("target_dbname")
+func NewHandler(storageService services.StorageService) *Handler {
+	return &Handler{StorageService: storageService}
+}
 
-	sourceDSN := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", sourceUser, sourcePassword, sourceHost, sourcePort, sourceDBName)
+func (h *Handler) HandleMigrate(c *gin.Context) {
+	source := &models.SourceAndTarget{
+		SourceDBType:   c.PostForm("source_db_type"),
+		SourceHost:     c.PostForm("source_host"),
+		SourcePort:     c.PostForm("source_port"),
+		SourceUser:     c.PostForm("source_user"),
+		SourcePassword: c.PostForm("source_password"),
+		SourceDBName:   c.PostForm("source_dbname"),
+	}
+
+	target := &models.SourceAndTarget{
+		TargetDBType:   c.PostForm("target_db_type"),
+		TargetHost:     c.PostForm("target_host"),
+		TargetPort:     c.PostForm("target_port"),
+		TargetUser:     c.PostForm("target_user"),
+		TargetPassword: c.PostForm("target_password"),
+		TargetDBName:   c.PostForm("target_dbname"),
+	}
+
+	// Save the data using the injected storage service
+	if err := h.StorageService.SourceDetails(source); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save source data"})
+		return
+	}
+
+	if err := h.StorageService.TargetDetails(target); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save target data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Data migration request received"})
+
+}
+
+func (s *SnT) MigrateHandler(c *gin.Context) {
+	s.getSourceDetails(c)
+	s.getTargetDetails(c)
+	sourceDSN := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", s.SourceUser, s.SourcePassword, s.SourceHost, s.SourcePort, s.SourceDBName)
 	var sourceDB *gorm.DB
 	var err error
 
-	if sourceDBType == "mysql" {
+	if s.SourceDBType == "mysql" {
 		sourceDB, err = db.ConnectMySQL(sourceDSN)
 	} else {
-		sourceDSN = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", sourceHost, sourceUser, sourcePassword, sourceDBName, sourcePort)
+		sourceDSN = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", s.SourceHost, s.SourceUser, s.SourcePassword, s.SourceDBName, s.SourcePort)
 		sourceDB, err = db.ConnectPostgres(sourceDSN)
 	}
 
@@ -46,13 +79,13 @@ func MigrateHandler(c *gin.Context) {
 	}
 
 	// Target DSN
-	targetDSN := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", targetUser, targetPassword, targetHost, targetPort, targetDBName)
+	targetDSN := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", s.TargetUser, s.TargetPassword, s.TargetHost, s.TargetPort, s.TargetDBName)
 	var targetDB *gorm.DB
 
-	if targetDBType == "mysql" {
+	if s.TargetDBType == "mysql" {
 		targetDB, err = db.ConnectMySQL(targetDSN)
 	} else {
-		targetDSN = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", targetHost, targetUser, targetPassword, targetDBName, targetPort)
+		targetDSN = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", s.TargetHost, s.TargetUser, s.TargetPassword, s.TargetDBName, s.TargetPort)
 		targetDB, err = db.ConnectPostgres(targetDSN)
 	}
 
@@ -75,4 +108,22 @@ func MigrateHandler(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "Data migration complete!")
+}
+
+func (s *SnT) getSourceDetails(c *gin.Context) {
+	s.SourceDBType = c.PostForm("source_db_type")
+	s.SourceHost = c.PostForm("source_host")
+	s.SourcePort = c.PostForm("source_port")
+	s.SourceUser = c.PostForm("source_user")
+	s.SourcePassword = c.PostForm("source_password")
+	s.SourceDBName = c.PostForm("source_dbname")
+}
+
+func (s *SnT) getTargetDetails(c *gin.Context) {
+	s.TargetDBType = c.PostForm("target_db_type")
+	s.TargetHost = c.PostForm("target_host")
+	s.TargetPort = c.PostForm("target_port")
+	s.TargetUser = c.PostForm("target_user")
+	s.TargetPassword = c.PostForm("target_password")
+	s.TargetDBName = c.PostForm("target_dbname")
 }
