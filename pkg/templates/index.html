@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Migration</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Data Migration Form</h1>
+
+        <form method="POST" action="/migrate">
+            <section>
+                <h2>Source Database (From)</h2>
+                <label for="source_db_type">Database Type:</label>
+                <select name="source_db_type" id="source_db_type">
+                    <option value="mysql">MySQL</option>
+                    <option value="postgres">PostgreSQL</option>
+                </select>
+
+                <label for="source_host">Host:</label>
+                <input type="text" name="source_host" id="source_host" required>
+
+                <label for="source_port">Port:</label>
+                <input type="text" name="source_port" id="source_port" required>
+
+                <label for="source_user">User:</label>
+                <input type="text" name="source_user" id="source_user" required>
+
+                <label for="source_password">Password:</label>
+                <input type="password" name="source_password" id="source_password" required>
+
+                <label for="source_dbname">Database Name:</label>
+                <input type="text" name="source_dbname" id="source_dbname" required>
+            </section>
+
+            <section>
+                <h2>Target Database (To)</h2>
+                <label for="target_db_type">Database Type:</label>
+                <select name="target_db_type" id="target_db_type">
+                    <option value="mysql">MySQL</option>
+                    <option value="postgres">PostgreSQL</option>
+                </select>
+
+                <label for="target_host">Host:</label>
+                <input type="text" name="target_host" id="target_host" required>
+
+                <label for="target_port">Port:</label>
+                <input type="text" name="target_port" id="target_port" required>
+
+                <label for="target_user">User:</label>
+                <input type="text" name="target_user" id="target_user" required>
+
+                <label for="target_password">Password:</label>
+                <input type="password" name="target_password" id="target_password" required>
+
+                <label for="target_dbname">Database Name:</label>
+                <input type="text" name="target_dbname" id="target_dbname" required>
+            </section>
+
+            <button type="submit">Migrate Data</button>
+        </form>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>
